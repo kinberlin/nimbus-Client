@@ -26,6 +26,6 @@
         android:id="@+id/map_fragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        map:mapId="YOUR_MAP_ID" />
+        map:mapId="483cfeabcf1f7aae" />
 
 </FrameLayout>

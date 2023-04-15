@@ -1,0 +1,68 @@
+{
+  "project_info": {
+    "project_number": "658390692600",
+    "project_id": "nimbusfree",
+    "storage_bucket": "nimbusfree.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:658390692600:android:322bfee127a67cbf62010d",
+        "android_client_info": {
+          "package_name": "cm.proj.nimbus"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "658390692600-a1p65500fala4nhf67cl5557vpujv3o8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO3QicfWKM43K2VQus2hwepLixAgDmxQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "658390692600-a1p65500fala4nhf67cl5557vpujv3o8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:658390692600:android:05240b58fcf3125562010d",
+        "android_client_info": {
+          "package_name": "com.google.codelabs.buildyourfirstmap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "658390692600-a1p65500fala4nhf67cl5557vpujv3o8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO3QicfWKM43K2VQus2hwepLixAgDmxQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "658390692600-a1p65500fala4nhf67cl5557vpujv3o8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -14,6 +14,8 @@
 
 package com.google.codelabs.buildyourfirstmap
 
+import android.graphics.Color
+import android.location.Location
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -24,6 +26,7 @@ import com.google.android.gms.maps.model.*
 import com.google.codelabs.buildyourfirstmap.place.Place
 import com.google.codelabs.buildyourfirstmap.place.PlaceRenderer
 import com.google.codelabs.buildyourfirstmap.place.PlacesReader
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.maps.android.clustering.ClusterManager
 
 class MainActivity : AppCompatActivity() {
@@ -31,18 +34,26 @@ class MainActivity : AppCompatActivity() {
     private val places: List<Place> by lazy {
         PlacesReader(this).read()
     }
+    // Get the Firebase Firestore instance
+    val db = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        /*for(x in 0..places.size){
+            addData(places[x],"places")
+        }*/
         val mapFragment =
             supportFragmentManager.findFragmentById(R.id.map_fragment) as? SupportMapFragment
         mapFragment?.getMapAsync { googleMap ->
             // Ensure all places are visible in the map
             googleMap.setOnMapLoadedCallback {
                 val bounds = LatLngBounds.builder()
-                places.forEach { bounds.include(it.latLng) }
-                googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 20))
+                places.forEach {
+                    bounds.include(it.latLng)
+                    //calculateViewport(googleMap, it.latLng.latitude, it.latLng.longitude, bounds.build())
+                    googleMap.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds.build(), 20))
+                }
             }
 
             //addMarkers(googleMap)
@@ -53,6 +64,37 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun calculateViewport(map: GoogleMap, lat: Double, lng: Double, bounds : LatLngBounds): Pair<LatLng, LatLng> {
+        // Create a LatLng object from lat and lng coordinates
+        val position = LatLng(lat, lng)
+
+        // Create a circle with a 10-meter radius around the point
+        val circleOptions = CircleOptions()
+            .center(position)
+            .radius(2.0)
+            .strokeColor(Color.CYAN)
+            .fillColor(Color.TRANSPARENT)
+        val circle = map.addCircle(circleOptions)
+
+        // Get the bounds of the circle
+       // val bounds = circle.center
+        //val bounds = LatLngBounds.builder().include(position).build()
+
+        // Get the northeast and southwest points of the bounds
+        val ne = bounds.northeast
+        val sw = bounds.southwest
+
+
+
+        // Fit the map to the new bounds
+        map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, 0))
+
+        // Remove the circle from the map
+        circle.remove()
+
+        // Return the northeast and southwest points
+        return Pair(ne, sw)
+    }
     /**
      * Adds markers to the map with clustering support.
      */
@@ -106,15 +148,15 @@ class MainActivity : AppCompatActivity() {
         circle = googleMap.addCircle(
             CircleOptions()
                 .center(item.latLng)
-                .radius(1000.0)
+                .radius(30.0)
                 .fillColor(ContextCompat.getColor(this, R.color.colorPrimaryTranslucent))
                 .strokeColor(ContextCompat.getColor(this, R.color.colorPrimary))
         )
     }
 
-    private val bicycleIcon: BitmapDescriptor by lazy {
+    private val busIcon: BitmapDescriptor by lazy {
         val color = ContextCompat.getColor(this, R.color.colorPrimary)
-        BitmapHelper.vectorToBitmap(this, R.drawable.ic_directions_bike_black_24dp, color)
+        BitmapHelper.vectorToBitmap(this, R.drawable.ic_buspark, color)
     }
 
     /**
@@ -126,7 +168,7 @@ class MainActivity : AppCompatActivity() {
                 MarkerOptions()
                     .title(place.name)
                     .position(place.latLng)
-                    .icon(bicycleIcon)
+                    .icon(busIcon)
             )
             // Set place as the tag on the marker object so it can be referenced within
             // MarkerInfoWindowAdapter
@@ -136,5 +178,16 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         val TAG = MainActivity::class.java.simpleName
+    }
+
+    fun addData(location: Place, collectionName: String) {
+        val collectionRef = db.collection(collectionName)
+        collectionRef.add(location)
+            .addOnSuccessListener {
+                println("Data added successfully!")
+            }
+            .addOnFailureListener { e ->
+                println("Error adding data: $e")
+            }
     }
 }
