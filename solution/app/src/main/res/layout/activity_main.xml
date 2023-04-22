@@ -15,19 +15,30 @@
 -->
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".MainActivity">
-
+    <TextView
+        android:id="@+id/txt_bus_displacements"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textSize="16dp"
+        android:gravity="center"
+        android:textStyle="bold"
+        android:textColor="@color/white"
+        android:background="@color/colorPrimaryDark"
+        android:layout_weight="6"
+        android:text="View Current Bus Displacement" />
     <fragment
         xmlns:map="http://schemas.android.com/apk/res-auto"
         class="com.google.android.gms.maps.SupportMapFragment"
         android:id="@+id/map_fragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight = "1"
+        android:layout_weight = "2"
         map:mapId="483cfeabcf1f7aae" />
 
     <include

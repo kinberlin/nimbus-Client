@@ -23,8 +23,10 @@ import android.os.Bundle
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
-import android.widget.ImageView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.Group
@@ -55,6 +57,8 @@ class MainActivity : AppCompatActivity() {
     private val places: List<Place> by lazy {
         PlacesReader(this).read()
     }
+    var selectedT = -1
+    var times = Times()
     private val activity = this
     private val fileName = "route.nimbus"
     private var file: File = File(fileName)
@@ -62,7 +66,10 @@ class MainActivity : AppCompatActivity() {
     var list_route: MutableList<PolylineOptions> = mutableListOf()
     lateinit var listTrajet: MutableList<Trajet>
     var routes: Routes = Routes(mutableListOf())
-    lateinit var polys : Polyline
+    var availservices = mutableListOf<Service>()
+    lateinit var polys: Polyline
+    lateinit var serAdapter : ServiceItemAdapter
+
     // Get the Firebase Firestore instance
     val db = FirebaseFirestore.getInstance()
 
@@ -146,16 +153,81 @@ class MainActivity : AppCompatActivity() {
             // Applying OnClickListener to our Adapter
             adapter.setOnClickListener(object : TrajetItemAdapter.OnClickListener {
                 override fun onClick(position: Int, model: Trajet) {
+                    selectedT = position;
                     HidePolyline(googleMap)
                     drawPolyline(googleMap, list_route[position])
+
                     // Do something with the list, like display it in a RecyclerView
                 }
             })
+            // Initialize the coroutine scope
+            val scope = CoroutineScope(Dispatchers.Main)
+            var detail = findViewById<TextView>(R.id.txt_bus_displacements)
+            detail.setOnClickListener {
+                availservices.clear()
+
+                GlobalScope.launch {
+                    var list =fetchFirestoreLocation(selectedT, times.getDate())
+                    availservices.addAll(list)
+                    delay(2000)
+                    activity.runOnUiThread{
+                       println("Services = "+ availservices.size.toString() + " , "+list.size)
+                        setDropDownMenu(availservices, detail)
+                    }
+
+                }
+            }
 
         }
 
     }
 
+    /**
+     * Display Drop Down
+     */
+    fun setDropDownMenu(avl : MutableList<Service>, view : View) {
+        serAdapter = ServiceItemAdapter(avl, listTrajet)
+        if (avl.size > 0) {
+            val popupView =
+                LayoutInflater.from(this).inflate(R.layout.service_detail_nav, null)
+
+            // create the popup window
+            val popupWindow = PopupWindow(
+                popupView,
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            var closeButton = popupView.findViewById<Button>(R.id.close_btn)
+            var recyclerService =
+                popupView.findViewById<RecyclerView>(R.id.recyclerview_services)
+            val layoutManagers = LinearLayoutManager(applicationContext)
+            recyclerService.layoutManager = layoutManagers
+            closeButton.setOnClickListener {
+                if (popupWindow.isShowing) {
+                    popupWindow.dismiss()
+                }
+            }
+            val layoutManager = LinearLayoutManager(applicationContext)
+            recyclerService.layoutManager = layoutManager
+            recyclerService.adapter = serAdapter
+            serAdapter.notifyDataSetChanged()
+
+            // show the popup window
+            popupWindow.showAsDropDown(view)
+        } else {
+            val popupView =
+                LayoutInflater.from(this).inflate(R.layout.layout_empty_servicelist, null)
+
+            // create the popup window
+            val popupWindow = PopupWindow(
+                popupView,
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            // show the popup window
+            popupWindow.showAsDropDown(view)
+        }
+    }
     /**
      * Adds markers to the map with clustering support.
      */
@@ -285,31 +357,12 @@ class MainActivity : AppCompatActivity() {
     fun HidePolyline(map: GoogleMap) {
         // Add the polyline to the map
         activity.runOnUiThread(java.lang.Runnable {
-           /* polys = map.addPolyline(actifPolyLine)
-            // Hide the polyline
-           polys.isVisible = false
-            polys.remove()*/
+            /* polys = map.addPolyline(actifPolyLine)
+             // Hide the polyline
+            polys.isVisible = false
+             polys.remove()*/
             map.clear();
         })
-    }
-
-    fun fetchFirestoreDataPeriodically() {
-        // Create a new coroutine scope
-        val scope = CoroutineScope(Dispatchers.Default)
-
-        // Start a coroutine that runs indefinitely
-        scope.launch {
-            while (true) {
-                // Use Firestore to fetch data here
-                val firestoreData = fetchFirestoreLocation()
-
-                // Process the data or update UI as needed
-                processData(firestoreData)
-
-                // Wait for 10 seconds before fetching data again
-                delay(10_000)
-            }
-        }
     }
 
     //Get route list asynchronously
@@ -318,7 +371,7 @@ class MainActivity : AppCompatActivity() {
             // Perform a long-running operation to retrieve data
             // For example, retrieve data from an API
             if (!checkFile(file)) {
-                for (x in 0..1) {
+                for (x in 0..listTrajet.size) {
                     drawRouteOnMap(listTrajet[x].arrival.latLng, listTrajet[x].depart.latLng)
                 }
                 delay(15000)
@@ -393,17 +446,49 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    suspend fun fetchFirestoreLocation(): List<Location> {
+    suspend fun fetchFirestoreLocation(trajet : Int, dates : String): List<Service> {
         // Use Firestore to fetch data here
         // This should be a suspend function that returns the fetched data
-        return db.collection("buses")
+        // Query the data by name and surname
+
+        return db.collection("service")
+            .whereEqualTo("trajet", trajet)
+            .whereEqualTo("dates", dates)
             .get()
             .await()
-            .toObjects(Location::class.java)
+            .toObjects(Service::class.java)
     }
 
-    fun processData(data: List<Location>) {
-        // Process the data or update UI as needed
+    private fun fetchDataList(trajet: Int, dates: String, collection: String) {
+
+        // Get a reference to the Firestore database
+        val db = FirebaseFirestore.getInstance()
+
+        // Get a reference to the collection of data to fetch
+        val dataListRef = db.collection(collection)
+
+        // Query the data by name and surname
+        val query = dataListRef
+            .whereEqualTo("trajet", trajet)
+            .whereEqualTo("dates", dates)
+
+        // Fetch the data
+        query.get()
+            .addOnSuccessListener { documents ->
+                // Convert the documents to a list
+                for (document in documents) {
+                    var data = document.toObject(Service::class.java)
+                    availservices.clear()
+                    availservices.add(data)
+                }
+
+                // Do something with the list of data, such as display it in a RecyclerView
+            }
+            .addOnFailureListener { exception ->
+                // Handle errors that occur while fetching the data
+                Log.d(TAG, "Error fetching data list from Firestore: ${exception.message}")
+                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show()
+            }
     }
 
     override fun onRequestPermissionsResult(
