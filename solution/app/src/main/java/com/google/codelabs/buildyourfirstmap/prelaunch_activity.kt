@@ -61,7 +61,6 @@ class prelaunch_activity : AppCompatActivity() {
         button.setOnClickListener(View.OnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
-            finish()
         })
 
     }
