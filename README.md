@@ -4,7 +4,7 @@ Google Maps Platform 101: Android Codelab
 ![App screenshot](appscreenshot.png)
 
 ## Description
-Accompanying starter and solution code for the [Google Maps Platform 101: Android Codelab][codelab], a codelab that teaches you how to integrate Maps SDK for Android into your app and use its core features.
+Mobile App to Track Urban Town public transport service such as Buses. Track thier activity, thir pick up and drop down points.
 
 ## Requirements
 * Android Studio 3.6 or higher
