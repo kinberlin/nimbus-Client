@@ -8,12 +8,11 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No Bus Operating On this Route"
+        android:text="No Bus Operating On this Route. \nPlease, retry after sometime to check for any activity."
         android:textStyle="normal|italic"
-        android:gravity="center"
-        android:textSize="18dp"
+        android:gravity="left"
         android:textColor="@color/white"
-        android:background="@color/cardview_dark_background"
+        android:layout_marginHorizontal="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

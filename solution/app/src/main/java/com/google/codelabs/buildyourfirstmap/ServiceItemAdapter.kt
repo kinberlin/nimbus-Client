@@ -43,7 +43,7 @@ class ServiceItemAdapter(private val mList: MutableList<Service>,val tList : Lis
         {
             // sets the text to the textview from our itemHolder class
             holder.arrival_txt.text = arrival.departName
-            holder.txt_time.text = "Bus is at Bus Park since : " +ItemsViewModel.hours
+            holder.txt_time.text = "Bus is at Bus Park ("+arrival.arrivalName+") since : " +ItemsViewModel.hours
             holder.busOrNone.setBackgroundResource(R.drawable.ic_buspark)
             holder.busStatus.setBackgroundResource(R.drawable.ic_right_arrow)
         }

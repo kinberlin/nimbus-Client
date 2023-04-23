@@ -15,18 +15,18 @@
 package com.google.codelabs.buildyourfirstmap
 
 import android.Manifest
-import android.content.Intent
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.location.Location
 import android.os.Bundle
 import android.transition.AutoTransition
 import android.transition.TransitionManager
 import android.util.Log
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.Group
@@ -46,11 +46,12 @@ import com.google.gson.Gson
 import com.google.maps.android.PolyUtil
 import com.google.maps.android.clustering.ClusterManager
 import kotlinx.coroutines.*
-import okhttp3.*
 import kotlinx.coroutines.tasks.await
+import okhttp3.*
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.*
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -68,7 +69,7 @@ class MainActivity : AppCompatActivity() {
     var routes: Routes = Routes(mutableListOf())
     var availservices = mutableListOf<Service>()
     lateinit var polys: Polyline
-    lateinit var serAdapter : ServiceItemAdapter
+    lateinit var serAdapter: ServiceItemAdapter
 
     // Get the Firebase Firestore instance
     val db = FirebaseFirestore.getInstance()
@@ -164,17 +165,38 @@ class MainActivity : AppCompatActivity() {
             val scope = CoroutineScope(Dispatchers.Main)
             var detail = findViewById<TextView>(R.id.txt_bus_displacements)
             detail.setOnClickListener {
-                availservices.clear()
+                if (selectedT != -1) {
+                    availservices.clear()
+                    Toast.makeText(
+                        this,
+                        "Connecting to Database. Wait a while ...",
+                        Toast.LENGTH_LONG
+                    )
+                        .show()
+                    GlobalScope.launch {
+                        var list = fetchFirestoreLocation(selectedT, times.getDate())
+                        availservices.addAll(list)
+                        delay(2000)
+                        activity.runOnUiThread {
+                            println("Services = " + availservices.size.toString() + " , " + list.size)
+                            setDropDownMenu(availservices, detail)
+                        }
 
-                GlobalScope.launch {
-                    var list =fetchFirestoreLocation(selectedT, times.getDate())
-                    availservices.addAll(list)
-                    delay(2000)
-                    activity.runOnUiThread{
-                       println("Services = "+ availservices.size.toString() + " , "+list.size)
-                        setDropDownMenu(availservices, detail)
+                    }
+                } else {
+                    var warn = AlertDialog.Builder(this)
+
+                    // Set the title and message
+                    warn.setTitle("Route Error")
+                    warn.setMessage("Please, select a route from dropdown list at the bottom of page. \nInorder to view route activity.")
+
+                    // Add the positive button
+                    warn.setPositiveButton("OK") { dialog, which ->
+                        // Handle the positive button click
                     }
 
+                    // Show the dialog
+                    warn.show()
                 }
             }
 
@@ -185,49 +207,52 @@ class MainActivity : AppCompatActivity() {
     /**
      * Display Drop Down
      */
-    fun setDropDownMenu(avl : MutableList<Service>, view : View) {
+    fun setDropDownMenu(avl: MutableList<Service>, view: View) {
         serAdapter = ServiceItemAdapter(avl, listTrajet)
         if (avl.size > 0) {
-            val popupView =
-                LayoutInflater.from(this).inflate(R.layout.service_detail_nav, null)
+            var inflater = LayoutInflater.from(this)
+            var views = inflater.inflate(R.layout.service_detail_nav, null)
 
-            // create the popup window
-            val popupWindow = PopupWindow(
-                popupView,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            var closeButton = popupView.findViewById<Button>(R.id.close_btn)
             var recyclerService =
-                popupView.findViewById<RecyclerView>(R.id.recyclerview_services)
-            val layoutManagers = LinearLayoutManager(applicationContext)
-            recyclerService.layoutManager = layoutManagers
-            closeButton.setOnClickListener {
-                if (popupWindow.isShowing) {
-                    popupWindow.dismiss()
-                }
-            }
+                views.findViewById<RecyclerView>(R.id.recyclerview_services)
             val layoutManager = LinearLayoutManager(applicationContext)
             recyclerService.layoutManager = layoutManager
             recyclerService.adapter = serAdapter
             serAdapter.notifyDataSetChanged()
 
-            // show the popup window
-            popupWindow.showAsDropDown(view)
-        } else {
-            val popupView =
-                LayoutInflater.from(this).inflate(R.layout.layout_empty_servicelist, null)
+            val builder = AlertDialog.Builder(this)
+                .setView(views)
+                .setTitle("Bus Trajectory")
+                .setPositiveButton("OK") { dialogInterface: DialogInterface, i: Int ->
+                    // OK button clicked
+                }
+                .setNegativeButton("Cancel") { dialogInterface: DialogInterface, i: Int ->
+                    // Cancel button clicked
+                }
+                .setCancelable(false)
 
-            // create the popup window
-            val popupWindow = PopupWindow(
-                popupView,
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            // show the popup window
-            popupWindow.showAsDropDown(view)
+            val alertDialog = builder.create()
+            alertDialog.show()
+
+        } else {
+            var Views = LayoutInflater.from(this).inflate(R.layout.layout_empty_servicelist, null)
+
+            var builder = AlertDialog.Builder(this, R.style.Theme_AppCompat_Dialog_Alert)
+                .setView(Views)
+                .setTitle("No Activity")
+                .setPositiveButton("OK") { dialogInterface: DialogInterface, i: Int ->
+                    // OK button clicked
+                }
+                .setNegativeButton("Cancel") { dialogInterface: DialogInterface, i: Int ->
+                    // Cancel button clicked
+                }
+                .setCancelable(false)
+
+            val alertDialog = builder.create()
+            alertDialog.show()
         }
     }
+
     /**
      * Adds markers to the map with clustering support.
      */
@@ -446,7 +471,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    suspend fun fetchFirestoreLocation(trajet : Int, dates : String): List<Service> {
+    suspend fun fetchFirestoreLocation(trajet: Int, dates: String): List<Service> {
         // Use Firestore to fetch data here
         // This should be a suspend function that returns the fetched data
         // Query the data by name and surname
@@ -457,38 +482,6 @@ class MainActivity : AppCompatActivity() {
             .get()
             .await()
             .toObjects(Service::class.java)
-    }
-
-    private fun fetchDataList(trajet: Int, dates: String, collection: String) {
-
-        // Get a reference to the Firestore database
-        val db = FirebaseFirestore.getInstance()
-
-        // Get a reference to the collection of data to fetch
-        val dataListRef = db.collection(collection)
-
-        // Query the data by name and surname
-        val query = dataListRef
-            .whereEqualTo("trajet", trajet)
-            .whereEqualTo("dates", dates)
-
-        // Fetch the data
-        query.get()
-            .addOnSuccessListener { documents ->
-                // Convert the documents to a list
-                for (document in documents) {
-                    var data = document.toObject(Service::class.java)
-                    availservices.clear()
-                    availservices.add(data)
-                }
-
-                // Do something with the list of data, such as display it in a RecyclerView
-            }
-            .addOnFailureListener { exception ->
-                // Handle errors that occur while fetching the data
-                Log.d(TAG, "Error fetching data list from Firestore: ${exception.message}")
-                Toast.makeText(this, "No Internet Connection", Toast.LENGTH_LONG).show()
-            }
     }
 
     override fun onRequestPermissionsResult(
